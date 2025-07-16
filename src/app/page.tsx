@@ -1,4 +1,5 @@
 'use client';
+import Signup from '@/components/Signup';
 import { useEffect } from 'react';
 
 export default function Page() {
@@ -14,5 +15,7 @@ export default function Page() {
     }
   }, []);
 
-  return <main>Hello World</main>;
+  return <main>
+    <Signup />
+  </main>;
 }
