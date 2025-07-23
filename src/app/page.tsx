@@ -1,5 +1,5 @@
 'use client';
-import Signup from '@/components/Signup';
+import Signup from '@/pages/Signup';
 import { useEffect } from 'react';
 
 export default function Page() {

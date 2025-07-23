@@ -1,8 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
+import { prisma } from '@/lib/prisma'
 
-// Initialize Prisma correctly (solution for first error)
-import { PrismaClient } from '@prisma/client'
-const prisma = new PrismaClient()
 
 export default async function handler(
   req: NextApiRequest,
@@ -16,7 +14,7 @@ export default async function handler(
     })
   }
 
-  const { id, email } = req.body
+  const { id, email, username } = req.body
 
   // Input validation
   if (!id || !email) {
@@ -24,21 +22,46 @@ export default async function handler(
       error: 'Both id and email are required',
       example: {
         id: 'user_123',
-        email: 'user@example.com'
+        email: 'user@example.com',
+        username: 'optional_username'
       }
     })
   }
 
   try {
+    // If username is provided, check if it already exists for another user
+    if (username) {
+      const existingUser = await prisma.user.findUnique({
+        where: { username },
+        select: { id: true }
+      })
+
+      // Check if username is taken by another user
+      if (existingUser && existingUser.id !== id) {
+        return res.status(400).json({
+          error: 'Username is already taken',
+          code: 'USERNAME_TAKEN'
+        })
+      }
+    }
+
+    // Upsert user with username if provided
     const user = await prisma.user.upsert({
       where: { id },
-      update: { email },
-      create: { id, email },
+      update: {
+        email,
+        ...(username && { username }) // Only update username if provided
+      },
+      create: {
+        id,
+        email,
+        ...(username && { username }) // Only include username if provided
+      }
     })
 
     return res.status(200).json(user)
   } catch (error) {
-    // Proper error type handling (solution for second error)
+    // Proper error type handling
     const errorMessage = error instanceof Error 
       ? error.message 
       : 'Failed to create/update user'
@@ -47,5 +70,7 @@ export default async function handler(
       error: errorMessage,
       code: 'USER_UPSERT_ERROR'
     })
+  } finally {
+    await prisma.$disconnect()
   }
 }
