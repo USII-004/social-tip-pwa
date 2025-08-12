@@ -1,8 +1,14 @@
 'use client';
-import Signup from '@/pages/Signup';
+
+import Signup from '@/app/signup/page';
 import { useEffect } from 'react';
+import Dashboard from './dashboard/page';
+import Send from './Send/page';
+import Profile from './Profile/page';
+
 
 export default function Page() {
+  // Service worker registration
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
@@ -16,6 +22,7 @@ export default function Page() {
   }, []);
 
   return <main>
-    <Signup />
+    {/* <Signup /> */}
+    <Dashboard />
   </main>;
 }

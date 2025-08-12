@@ -1,12 +1,15 @@
-import rateLimit from './rate-limiter'
-import { NextApiRequest, NextApiResponse } from 'next'
-
-const limiter = rateLimit({
-  interval: 60 * 1000, // 1 minute
-  uniqueTokenPerInterval: 1000, // Max 1000 unique combinations per interval
-})
+import { emailRateLimiter as limiter } from './rate-limiter'
 
 export const emailRateLimiter = {
-  check: (res: NextApiResponse, ip: string, email: string) => 
-    limiter.check(res, 5, `${ip}-${email}`), // 5 requests per minute per IP-email combo
+  check: async (ip: string, email: string, limit = 5) => {
+    const token = `${ip}-${email}`
+    const result = limiter.check('email', token, limit)
+
+    if (result.limited) {
+      const resetTime = new Date(Number(result.headers.get('X-RateLimit-Reset')))
+      throw new Error(`Rate limit exceeded. Try again after ${resetTime.toLocaleTimeString()}.`)
+    }
+
+    return result
+  },
 }

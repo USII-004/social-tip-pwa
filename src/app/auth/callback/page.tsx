@@ -1,5 +1,7 @@
+"use client"
+
 import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { toast } from "sonner"
 import { Toaster } from "@/components/ui/sonner"
@@ -22,8 +24,21 @@ export default function AuthCallback() {
   const [isFocused, setIsFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
+    // Check for error query parameters (e.g., from OAuth)
+    const error = searchParams.get('error')
+    const errorDescription = searchParams.get('error_description')
+    if (error) {
+      console.error('Auth callback query error:', { error, errorDescription })
+      toast.error("Authentication Error", {
+        description: errorDescription || 'Failed to authenticate. Please try again.',
+      })
+      router.push('/signup')
+      return
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -32,95 +47,128 @@ export default function AuthCallback() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', { event, userId: session?.user?.id, email: session?.user?.email })
+
       if (session?.user) {
         try {
+          // Validate session data
+          if (!session.user.id || !session.user.email) {
+            throw new Error('Invalid session: Missing user ID or email')
+          }
+
+          const requestBody = {
+            id: session.user.id,
+            email: session.user.email,
+          }
+          console.log('Sending to /api/user:', requestBody)
+
           const res = await fetch('/api/user', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              id: session.user.id,
-              email: session.user.email,
-            }),
+            body: JSON.stringify(requestBody),
           })
 
           const userData = await res.json()
+          console.log('Response from /api/user:', { status: res.status, userData })
 
           if (res.ok && !userData.username) {
             setShowUsernameForm(true)
           } else if (res.ok) {
+            toast.success("Success", {
+              description: "Authenticated successfully",
+            })
             router.push('/dashboard')
           } else {
             throw new Error(userData.error || 'Failed to verify user')
           }
-        } catch (error: any) {
-          let errorMessage = "Failed to verify user"
-          if (error instanceof Error) {
-            errorMessage = error.message
-          } else if (typeof error === 'string') {
-            errorMessage = error
-          }
-          toast.error("error", {
-            description: errorMessage || "Authentication failed",
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Authentication failed'
+          console.error('Auth callback error:', error)
+          toast.error("Error", {
+            description: errorMessage === 'Failed to connect to database' 
+              ? 'Database connection error. Please try again later.'
+              : errorMessage,
           })
-          router.push('/?error=Authentication failed')
+          router.push('/signup?error=Authentication failed')
         } finally {
           setIsAuthenticating(false)
         }
+      } else {
+        console.error('No session or user found')
+        toast.error("Error", {
+          description: 'No authenticated user found',
+        })
+        router.push('/signup?error=No authenticated user')
+        setIsAuthenticating(false)
       }
     })
 
     return () => {
+      console.log('Unsubscribing from auth state change')
       subscription.unsubscribe()
     }
-  }, [router])
+  }, [router, searchParams])
 
   const handleUsernameSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+
+    // Client-side username validation
+    const isValidUsername = /^[a-zA-Z0-9_]{3,20}$/.test(username)
+    if (!isValidUsername) {
+      toast.error("Error", {
+        description: "Username must be 3-20 characters long and contain only letters, numbers, or underscores",
+      })
+      setIsSubmitting(false)
+      return
+    }
 
     try {
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-      if (!user) {
-        throw new Error('No authenticated user found')
+      if (userError || !user) {
+        throw new Error(userError?.message || 'No authenticated user found')
       }
+
+      const requestBody = {
+        id: user.id,
+        email: user.email,
+        username,
+      }
+      console.log('Submitting username to /api/user:', requestBody)
 
       const response = await fetch('/api/user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          id: user.id,
-          email: user.email,
-          username,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
+      const data = await response.json()
+      console.log('Username submission response:', { status: response.status, data })
+
       if (!response.ok) {
-        const data = await response.json()
         throw new Error(data.error || 'Failed to set username')
       }
 
-      toast.success("success", {
+      toast.success("Success", {
         description: "Username set successfully!",
       })
       router.push('/dashboard')
-    } catch (error: any) {
-      let errorMessage = "Failed to set username"
-      if (error instanceof Error) {
-        errorMessage = error.message
-      } else if (typeof error === 'string') {
-        errorMessage = error
-      }
-      toast.error("error", {
-        description: errorMessage,
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to set username'
+      console.error('Username submission error:', error)
+      toast.error("Error", {
+        description: errorMessage === 'Failed to connect to database' 
+          ? 'Database connection error. Please try again later.'
+          : errorMessage,
       })
     } finally {
       setIsSubmitting(false)
@@ -183,7 +231,7 @@ export default function AuthCallback() {
                 type="submit"
                 variant="outline"
                 className="bg-gray-50 hover:bg-gray-300 text-black w-full h-12 text-base"
-                disabled={isSubmitting || !username.trim()}
+                disabled={isSubmitting || !username.trim() || !/^[a-zA-Z0-9_]{3,20}$/.test(username)}
               >
                 {isSubmitting ? (
                   <>
