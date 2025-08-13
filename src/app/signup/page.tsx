@@ -1,38 +1,66 @@
-import Sidebar from "@/components/Sidebar"
+"use client"
+import { Abstraxion, useAbstraxionAccount, useModal } from '@burnt-labs/abstraxion';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
+import { Toaster } from "@/components/ui/sonner"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react";
 
-export default function Dashboard() {
-
+const Signup = () => {
+  // Abstraxion hooks
+  const { data: { bech32Address }, isConnected, isConnecting } = useAbstraxionAccount();
   
+  // Use the useModal hook correctly
+  const [showModal, setShowModal] = useModal();
+  
+  const router = useRouter()
+
+  // Handle successful connection and redirect
+  useEffect(() => {
+    if (isConnected && bech32Address) {
+      toast.success("Wallet connected successfully!");
+      router.push("/register");
+    }
+  }, [isConnected, bech32Address, router]);
+
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 p-4 md:p-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between mb-6">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <div className="flex gap-2 mt-4 md:mt-0">
-            <button className="bg-[#1f1f1f] px-4 py-2 rounded">Filter</button>
-            <button className="bg-[#1f1f1f] px-4 py-2 rounded">Export</button>
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <Card className="w-full max-w-lg bg-black/50 backdrop-blur-md border border-gray-800 rounded-4xl">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl text-white">Social Tip</CardTitle>
+          <CardDescription className="text-gray-400">
+            Send token to users conveniently
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-5">
+          <div className="flex flex-col">
+            <Button 
+              onClick={() => setShowModal(true)}
+              type="button"
+              variant="outline" 
+              className="bg-gray-50 hover:bg-gray-300 text-black my-3 h-12 text-base"
+              disabled={isConnecting}
+            >
+              {isConnecting ? "Connecting..." : "LOG IN / SIGN UP"}
+            </Button>
           </div>
-        </div>
-
-        {/* Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <div className="bg-[#151515] p-4 rounded">Total Sales</div>
-          <div className="bg-[#151515] p-4 rounded">Total Orders</div>
-          <div className="bg-[#151515] p-4 rounded">Visitors</div>
-          <div className="bg-[#151515] p-4 rounded">Refunded</div>
-        </div>
-
-        {/* Charts */}
-        <div className="grid gap-4 md:grid-cols-2 mt-4">
-          <div className="bg-[#151515] p-4 rounded">Revenue Chart</div>
-          <div className="bg-[#151515] p-4 rounded">Traffic Channel</div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-[#151515] p-4 rounded mt-4">Recent Activity</div>
-      </main>
+        </CardContent>
+      </Card>
+      
+      {/* Correct Abstraxion modal usage */}
+      <Abstraxion onClose={() => setShowModal(false)} />
+      
+      <Toaster position="top-center" richColors />
     </div>
   )
 }
+
+export default Signup
