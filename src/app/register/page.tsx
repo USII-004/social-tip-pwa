@@ -15,6 +15,8 @@ import * as z from "zod"
 import { toast } from "sonner"
 import { Toaster } from "@/components/ui/sonner"
 import { useRouter } from "next/navigation"
+import { useWallet } from "../context/WalletContext"
+import { useState } from "react" 
 
 // From validation schema
 const formSchema = z.object({
@@ -26,26 +28,51 @@ const formSchema = z.object({
 })
 
 export default function Register() {
-  const router = useRouter()
+  const router = useRouter();
+
+  const {
+    address,
+    client,
+    executeContract,
+  } = useWallet();
+
+  const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(formSchema)
   })
 
-  const onSubmit = async () => {
+  const onSubmit = async (FormData: z.infer<typeof formSchema>) => {
+    if (!address) {
+      toast.error("Please connect wallet first")
+      router.push("/signup")
+      return
+    }
+
+    setIsLoading(true)
     try {
-      // Here you would typically call your API to register the user
-      // For demo, we'll just simulate an API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      // usename registration on-chain
+      const registerMsg = {
+        register: {
+          identifier: FormData.username
+        }
+      }
+      await executeContract(
+        process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!,
+        registerMsg
+      )
+      // make provosion to store email onchain in later version of contract
+
       toast.success("Registration successful!")
       router.push("/dashboard")
     } catch (error) {
       toast.error("Registration failed. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -72,7 +99,7 @@ export default function Register() {
               )}
             </div>
             
-            <div className="space-y-2 py-2">
+            {/* <div className="space-y-2 py-2">
               <Input
                 {...register("email")}
                 type="email"
@@ -82,14 +109,14 @@ export default function Register() {
               {errors.email && (
                 <p className="text-red-400 text-sm">{errors.email.message}</p>
               )}
-            </div>
+            </div> */}
             
             <Button 
               type="submit"
               className="w-full !bg-green-700 !hover:bg-green-900 text-white !font-bold !p-6 !mt-2"
-              disabled={isSubmitting}
+              disabled={isLoading}
             >
-              {isSubmitting ? "Registering..." : "Register"}
+              {isLoading ? "Registering..." : "Register"}
             </Button>
           </form>
         </CardContent>

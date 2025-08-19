@@ -70,7 +70,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Execute samrt contract transaction
+  // Execute smart contract transaction
   const executeContract = async (contractAddr: string, msg: Record<string, any>, funds: { denom: string, amount: string }[] = []) => {
     if (!client || !address) throw new Error("Wallet not connected");
     try {
