@@ -5,7 +5,8 @@ import {
   Abstraxion,
   useAbstraxionAccount,
   useAbstraxionSigningClient,
-  useAbstraxionClient
+  useAbstraxionClient,
+  useModal
 } from "@burnt-labs/abstraxion";
 import "@burnt-labs/ui/dist/index.css";
 
@@ -30,7 +31,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const [ address, setAddress ] = useState<string | null>(null);
   const [ balance, setBalance ] = useState<string | null>(null);
-  const [ showModal, setShowModal ] = useState<boolean>(false);
+  const [isModalOpen, setModalOpen] = useModal();
+
+  const modalReturn = useModal();
+  console.log('useModal() returns:', modalReturn);
 
   // convert micro xion ("uxion") to readable XION
   const toDisplayXion = (amount: string) => {
@@ -50,7 +54,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [account, queryClient]);
 
   const connectWallet = async () => {
-    setShowModal(true); // Opens abstraxion modal for email/Google/Passkey login
+    console.log("wallet connection initiated")
+    setModalOpen(true); // Opens abstraxion modal for email/Google/Passkey login
   };
 
   const disconnectWallet = () => {
@@ -115,9 +120,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         queryClient,
         toDisplayXion,
         executeContract,
-        queryContract,   
+        queryContract,
       }}>
-      <Abstraxion onClose={() => setShowModal(false)} />
+      <Abstraxion onClose={() => setModalOpen(false)} />
       {children}
     </WalletContext.Provider>
   );

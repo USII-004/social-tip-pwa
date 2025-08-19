@@ -65,7 +65,7 @@ export default function Register() {
         process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!,
         registerMsg
       )
-      // make provosion to store email onchain in later version of contract
+      // make provision to store email onchain in later version of contract
 
       toast.success("Registration successful!")
       router.push("/dashboard")

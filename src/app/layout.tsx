@@ -2,10 +2,12 @@
 
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AbstraxionProvider } from "@burnt-labs/abstraxion";
+import { WalletProvider } from "./context/WalletContext";
+
 
 import "@burnt-labs/abstraxion/dist/index.css";
 import "@burnt-labs/ui/dist/index.css"
+import { AbstraxionProvider } from "@burnt-labs/abstraxion";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,6 +18,14 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+// export const abstraxionConfig = {
+//   chains: [xion],
+//   transports: {
+//     [xion.id]: http(),
+//   },
+// };
+
 
 const treasuryConfig = {
   treasury: process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
@@ -32,10 +42,11 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}>
-        <AbstraxionProvider
-          config={treasuryConfig}>
-          {children}
-        </AbstraxionProvider>
+          <AbstraxionProvider config={treasuryConfig}>
+            <WalletProvider>
+              {children}
+            </WalletProvider>
+          </AbstraxionProvider>
       </body>
     </html>
   );

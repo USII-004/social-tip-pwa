@@ -2,10 +2,6 @@
 
 import Signup from '@/app/signup/page';
 import { useEffect } from 'react';
-import Dashboard from './dashboard/page';
-import Send from './Send/page';
-import Profile from './Profile/page';
-import Register from './register/page';
 
 
 export default function Page() {
@@ -23,7 +19,6 @@ export default function Page() {
   }, []);
 
   return <main>
-    {/* <Signup /> */}
-    <Register />
+    <Signup />
   </main>;
 }

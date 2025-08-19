@@ -30,7 +30,7 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg bg-black/50 backdrop-blur-md border border-gray-800 rounded-4xl">
+      <Card className="w-full max-w-lg bg-black/50 backdrop-blur-md !border !border-gray-800 !rounded-4xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl text-white">Social Tip</CardTitle>
           <CardDescription className="text-gray-400">
@@ -40,11 +40,10 @@ const Signup = () => {
         
         <CardContent className="space-y-5">
           <div className="flex flex-col">
-            <Button 
-              onClick={connectWallet}
-              type="button"
-              variant="outline" 
-              className="bg-gray-50 hover:bg-gray-300 text-black my-3 h-12 text-base"
+            <Button
+             type="submit"
+              onClick={connectWallet} 
+              className="w-full !bg-green-700 !hover:bg-green-900 text-white !font-bold !p-6 !mt-2"
             >
               {address ? "Connecting..." : "LOG IN / SIGN UP"}
             </Button>
