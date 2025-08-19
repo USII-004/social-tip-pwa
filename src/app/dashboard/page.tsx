@@ -1,10 +1,52 @@
 import Sidebar from "@/components/Sidebar"
 import { Eye, EyeClosed, Send } from "lucide-react"
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useWallet } from "../context/WalletContext";
+import { useRouter } from "next/navigation";
+import { contractService } from "@/lib/contractService";
 
 export default function Dashboard() {
 
+  const router = useRouter();
   const [showWalletBalance, setShowWalletBalance] = useState(true);
+  const [username, setUsername] = useState<string | null>(null);
+  const {
+    address,
+    balance,
+    toDisplayXion,
+    client,
+    queryClient,
+  } = useWallet();
+
+  // Initialize contract service
+  const [service, setService] = useState<contractService | null>(null);
+
+  useEffect(() => {
+    if (address && client && queryClient) {
+      const contractAddr = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!;
+      setService(new contractService(client, contractAddr, address));
+
+      //fetch registered username
+      fetchUsername(address);
+    }
+  }, [address, client, queryClient]);
+
+  const fetchUsername = async (address: string) => {
+    if (!service) return;
+    try {
+      const response  = await service.getAccount(address);
+      if (response.address) {
+        setUsername(response.address || "Unregistered");
+      }
+    } catch (error) {
+      console.error("Error fetching username:", error);
+      setUsername("Error");
+    }
+  };
+
+  const handleSendClick = () => {
+    router.push("/send");
+  }
 
   function truncateAddress(address: string) {
     return address.length > 8
@@ -24,8 +66,8 @@ export default function Dashboard() {
 
           {/* Username and wallet address */}
           <div>
-            <div className="font-bold text-sm md:py-2">TestUser001</div>
-            <div>{truncateAddress("xionWalletAddress")}</div>
+            <div className="font-bold text-sm md:py-2">{username || "Loading..."}</div>
+            <div>{address ? truncateAddress(address) : "Not connected"}</div>
           </div>
         </div>
 
@@ -43,12 +85,17 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
-              <div className="font-bold text-3xl p-2">{`${showWalletBalance ? "1.00032" : "*****"}`}</div>
+              <div className="font-bold text-3xl p-2">{`${showWalletBalance ? balance ? toDisplayXion(balance) : "0 XION" : "*****"}`}</div>
             </div>
-            <div className="bg-green-700 hover:bg-green-900 w-16 h-16 rounded-full mx-auto p-2 flex justify-center items-center">
+            <div
+            onClick={handleSendClick} 
+            className="bg-green-700 hover:bg-green-900 w-16 h-16 rounded-full mx-auto p-2 flex justify-center items-center"
+            >
               <Send size={32}/>
             </div>
           </div>
+
+          {/* other dashboard cards */}
           <div className="bg-[#151515] p-4 rounded">Total Orders</div>
           <div className="bg-[#151515] p-4 rounded">Visitors</div>
           <div className="bg-[#151515] p-4 rounded">Refunded</div>
